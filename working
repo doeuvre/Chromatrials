@@ -1,1 +1,560 @@
+package main;
 
+import javax.swing.JFrame;
+
+public class Main {
+
+	public static void main(String[] args) {
+		
+		JFrame window = new JFrame();
+		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		window.setResizable(false);
+		window.setTitle("Chromatrials");
+		
+		GamePanel gamePanel = new GamePanel();
+		window.add(gamePanel);
+		
+		window.pack();
+		
+		window.setLocationRelativeTo(null);
+		window.setVisible(true);
+		System.setProperty("sun.java2d.opengl", "true");
+		gamePanel.startGameThread();
+	
+	}
+
+}
+package main;
+
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+
+public class KeyHandler implements KeyListener{
+	
+	public boolean upPressed, downPressed, leftPressed, rightPressed;
+	GamePanel gp;
+
+	@Override
+	public void keyTyped(KeyEvent e) {}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+		
+		int code = e.getKeyCode();
+		
+		if(code == KeyEvent.VK_W){
+		    upPressed = true;
+		}
+		if(code == KeyEvent.VK_S){
+		    downPressed = true;
+		}
+		if(code == KeyEvent.VK_A){
+		    leftPressed = true;
+		}
+		if(code == KeyEvent.VK_D){
+		    rightPressed = true;
+	}
+	}
+	@Override
+	public void keyReleased(KeyEvent e) {
+	    
+	    int code = e.getKeyCode();
+	    
+	    if(code == KeyEvent.VK_W){
+	        upPressed = false;
+	    }
+	    if(code == KeyEvent.VK_S){
+	        downPressed = false;
+	    }
+	    if(code == KeyEvent.VK_A){
+	        leftPressed = false;
+	    }
+	    if(code == KeyEvent.VK_D){
+	        rightPressed = false;
+	    }
+	}
+}
+package entity;
+
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
+
+
+public class Entity {
+    public int worldX, worldY;
+    public int speed; 
+
+    public BufferedImage up1, up2, down1, down2, left1, left2, right1, right2;
+    public String direction;
+    public int spriteCounter = 0;
+    public int spriteNum = 1;   
+    public Rectangle solidArea;
+    public boolean collisionOn = false;
+}
+package entity;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
+
+import main.GamePanel;
+import main.KeyHandler;
+import main.Main;
+
+public class Player extends Entity {
+
+    GamePanel gp;
+    KeyHandler keyH;
+    
+    public final int screenX;
+    public final int screenY;
+
+
+    public Player(GamePanel gp, KeyHandler keyH) {
+        this.gp = gp;
+        this.keyH = keyH;
+        
+        screenX = gp.screenWidth/2 - (gp.tileSize/2);
+        screenY = gp.screenHeight/2 - (gp.tileSize/2);
+        
+        solidArea = new Rectangle();
+        solidArea.x = 8;
+        solidArea.y = 16;
+        solidArea.width = 32;
+        solidArea.height = 32;
+        
+        
+        setDefaultValues();
+        getPlayerImage();
+    }
+
+    public void setDefaultValues() {
+        worldX = gp.tileSize * 10;
+        worldY = gp.tileSize * 7;
+        speed = 4;
+        direction = "left";
+    }
+
+    public void getPlayerImage() {
+        try {  
+        	System.out.println("printing");	         	
+        	down1 = ImageIO.read(getClass().getResourceAsStream("/player/boy_down_1.png"));
+            down2 = ImageIO.read(getClass().getResourceAsStream("/player/boy_down_2.png"));
+            up1 = ImageIO.read(getClass().getResourceAsStream("/player/boy_up_1.png"));
+            up2 = ImageIO.read(getClass().getResourceAsStream("/player/boy_up_2.png"));
+            left1 = ImageIO.read(getClass().getResourceAsStream("/player/boy_left_1.png"));
+            left2 = ImageIO.read(getClass().getResourceAsStream("/player/boy_left_2.png"));
+            right1 = ImageIO.read(getClass().getResourceAsStream("/player/boy_right_1.png"));
+            right2 = ImageIO.read(getClass().getResourceAsStream("/player/boy_right_2.png"));
+            System.out.println("finished");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void update() {
+    	if(keyH.upPressed == true || keyH.downPressed == true ||
+    			keyH.leftPressed == true || keyH.rightPressed == true) {
+    		if(keyH.upPressed == true) {
+    	    	   direction = "up";
+    	    	    
+    	       }
+    	       else if (keyH.downPressed == true) {
+    	    	   direction = "down";    	    	       	    	   
+    	       }
+    	       else if(keyH.leftPressed == true) {
+    	    	   direction = "left";    	    	     
+    	       }
+    	       else if(keyH.rightPressed == true) {
+    	    	   direction = "right"; 	    	  
+    	       }
+    		// CHECK TILE COLLISION
+    		collisionOn = false; 
+    		gp.cChecker.checkTile(this);
+    		
+    		// IF COLLISION IS FALSE, PLAYER CAN MOVE
+    		if(collisionOn == false) {
+    			
+    			switch(direction) {
+    			case"up":
+    				worldY-= speed; 
+    				break;
+    			case"down":
+    				worldY += speed;
+    				break;
+    			case"left":
+    				worldX -= speed; 
+    				break;
+    			case"right":
+    				worldX += speed; 
+    				break;
+    			}
+    		}
+    		
+    		spriteCounter++;
+    		if(spriteCounter > 12) {
+    			if(spriteNum == 1) {
+    				spriteNum = 2;
+    			}
+    			else if(spriteNum == 2) {
+    				spriteNum = 1;
+    			}
+    			spriteCounter = 0;
+    		}
+    	}		
+
+}
+    public void draw(Graphics2D g2) {
+        BufferedImage image = null;
+        switch (direction) {
+            case "up":
+                if(spriteNum == 1) {
+                    image = up1; 
+                }
+                if(spriteNum == 2) {
+                    image = up2;
+                }
+                break;
+            case "down":
+                if(spriteNum == 1) {
+                    image = down1; 
+                }
+                if(spriteNum == 2) {
+                    image = down2;
+                }
+                break;
+            case "left":
+                if(spriteNum == 1) {
+                    image = left1; 
+                }
+                if(spriteNum == 2) {
+                    image = left2;
+                }
+                break;
+            case "right":
+                if(spriteNum == 1) {
+                    image = right1; 
+                }
+                if(spriteNum == 2) {
+                    image = right2;
+                }
+                break;
+        }
+        
+        // Modify the size of the image
+        int newSize = (int)(gp.tileSize * 1.25);
+        Image scaledImage = image.getScaledInstance(newSize, newSize, Image.SCALE_DEFAULT);
+        
+        g2.drawImage(scaledImage, screenX, screenY, null);
+    }
+}   	
+package main;
+
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
+import entity.Player;
+import tile.TileManager;
+
+
+public class GamePanel extends JPanel implements Runnable{
+	
+	// SCREEN SETTINGS
+    final int originalTileSize = 16; // 16x16 tile 
+    final int scale = 3;
+    
+    public final int tileSize = originalTileSize * scale; // 48x48 tiles
+    public final int maxScreenCol = 16;
+    public final int maxScreenRow = 12;
+    public final int screenWidth = tileSize * maxScreenCol; // 768 pixels
+    public final int screenHeight = tileSize * maxScreenRow; // 576 pixels
+    
+    // WORLD SETTINGS
+    public final int maxWorldCol = 16;
+    public final int maxWorldRow = 12;
+    public final int worldWidth = tileSize * maxWorldCol;
+    public final int worldHeight = tileSize * maxWorldRow;
+    // FPS
+    int FPS = 60;
+ 
+    
+    TileManager tileM = new TileManager(this);
+    KeyHandler keyH = new KeyHandler();
+    Thread gameThread;
+    public CollisionChecker cChecker = new CollisionChecker(this);
+    
+    // ENTITIES
+    public Player player = new Player(this, keyH);
+
+    public GamePanel() {
+        this.setPreferredSize(new Dimension(screenWidth, screenHeight));
+        this.setBackground(Color.black);
+        this.setDoubleBuffered(true);
+        this.addKeyListener(keyH);
+        this.setFocusable(true);
+    }
+    public void startGameThread() {
+        gameThread = new Thread(this);
+        gameThread.start();
+    }
+
+    @Override
+    public void run() {
+        double drawInterval = 1000000000 / FPS;
+        double delta = 0;
+        long lastTime = System.nanoTime();
+        long currentTime;
+        long timer = 0;
+        int drawCount = 0;
+        
+        while (gameThread != null) {                
+            currentTime = System.nanoTime();
+            delta += (currentTime - lastTime) / drawInterval;
+            timer += (currentTime - lastTime);
+            lastTime = currentTime;
+            
+            if (delta >= 1) {
+                update();
+                repaint();
+                delta--;
+                drawCount++;
+            }
+            
+            if (timer >= 1000000000) {
+                System.out.println("FPS" + drawCount);
+                drawCount = 0;
+                timer = 0;
+            }
+        }
+    }
+    public void update() {
+        player.update();
+        }
+    
+
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g; 
+        tileM.draw(g2);
+        
+        player.draw(g2);
+        g2.dispose();
+    }
+}
+package main;
+
+import entity.Entity;
+
+public class CollisionChecker {
+	
+	GamePanel gp;
+	
+	public CollisionChecker(GamePanel gp) {
+		this.gp = gp;
+	}
+	
+	public void checkTile(Entity entity) {
+		
+		int entityLeftWorldX = entity.worldX + entity.solidArea.x;
+		int entityRightWorldX = entity.worldX + entity.solidArea.x + entity.solidArea.width;
+		int entityTopWorldY = entity.worldY + entity.solidArea.y;
+		int entityBottomWorldY = entity.worldY + entity.solidArea.y + entity.solidArea.height;
+		
+		int entityLeftCol = entityLeftWorldX/gp.tileSize;
+		int entityRightCol = entityRightWorldX/gp.tileSize;
+		int entityTopRow = entityTopWorldY/gp.tileSize;
+		int entityBottomRow = entityBottomWorldY/gp.tileSize;
+		
+		int tileNum1, tileNum2;
+		
+		switch(entity.direction) {
+		case"up":
+			entityTopRow = (entityTopWorldY - entity.speed)/gp.tileSize;
+			tileNum1 = gp.tileM.mapTileNum[entityLeftCol][entityTopRow];
+			tileNum2 = gp.tileM.mapTileNum[entityRightCol][entityTopRow];  
+			if(gp.tileM.tile[tileNum1].collision == true || gp.tileM.tile[tileNum2].collision == true) {
+				entity.collisionOn = true;
+				
+			}
+			break;
+		case"down":
+			entityBottomRow = (entityBottomWorldY + entity.speed)/gp.tileSize;
+			tileNum1 = gp.tileM.mapTileNum[entityLeftCol][entityBottomRow];
+			tileNum2 = gp.tileM.mapTileNum[entityRightCol][entityBottomRow];
+			if(gp.tileM.tile[tileNum1].collision == true || gp.tileM.tile[tileNum2].collision == true) {
+				entity.collisionOn = true;
+				
+			}
+			break;
+		case"left":
+			entityLeftCol = (entityLeftWorldX - entity.speed)/gp.tileSize;
+			tileNum1 = gp.tileM.mapTileNum[entityLeftCol][entityTopRow];
+			tileNum2 = gp.tileM.mapTileNum[entityLeftCol][entityBottomRow];
+			if(gp.tileM.tile[tileNum1].collision == true || gp.tileM.tile[tileNum2].collision == true) {
+				entity.collisionOn = true;
+				
+			}
+			break;
+		case"right":
+			entityRightCol = (entityRightWorldX + entity.speed)/gp.tileSize;
+			tileNum1 = gp.tileM.mapTileNum[entityRightCol][entityTopRow];
+			tileNum2 = gp.tileM.mapTileNum[entityRightCol][entityBottomRow];
+			if(gp.tileM.tile[tileNum1].collision == true || gp.tileM.tile[tileNum2].collision == true) {
+				entity.collisionOn = true;
+				
+			}
+			break;
+		}
+	}
+}
+
+package tile;
+
+import java.awt.Graphics2D;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
+import javax.imageio.ImageIO;
+import tile.Tile;
+import main.GamePanel;
+import entity.Entity;
+
+
+
+public class TileManager {
+	
+	GamePanel gp;
+	public Tile[] tile;
+	
+	public int mapTileNum[][];
+	
+	
+	public TileManager(GamePanel gp) {
+		this.gp = gp;
+		
+		tile = new Tile[10];
+		mapTileNum = new int[gp.maxWorldCol][gp.maxWorldRow];
+		getTileImage();
+		loadMap("/maps/map.of.bedroom.txt");
+	}
+	public void getTileImage() {
+		try {
+			
+			tile[0] = new Tile();
+			tile[0].image = ImageIO.read(getClass().getResourceAsStream("/tiles/grass01.png"));
+			
+			
+			tile[1] = new Tile();
+			tile[1].image = ImageIO.read(getClass().getResourceAsStream("/tiles/black_background.png"));
+			tile[1].collision = true;
+			
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+	}	
+	public void loadMap(String filePath) {
+		try {
+			InputStream is = getClass().getResourceAsStream(filePath);
+			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			
+			int col = 0;
+			int row = 0;
+			
+			while(col < gp.maxWorldCol && row < gp.maxWorldRow ) {		
+				String line = br.readLine();
+				
+				while(col < gp.maxWorldCol) {
+					String numbers[] = line.split(" ");
+					
+					int num = Integer.parseInt(numbers[col]);
+					
+					mapTileNum[col][row] = num;
+					col++;
+					
+				}
+				if (col == gp.maxWorldCol) {
+					col = 0;
+					row++;
+				}
+			}
+			br.close();
+		
+		} catch(Exception e) {
+            System.out.println("loaded");
+		
+	}
+}
+	public void draw(Graphics2D g2) {
+		
+		int worldCol = 0;
+		int worldRow = 0;		
+
+		while(worldCol < gp.maxWorldCol && worldRow < gp.maxWorldRow) {
+			
+			int tileNum = mapTileNum[worldCol][worldRow];
+			
+			int worldX = worldCol * gp.tileSize;
+			int worldY = worldRow * gp.tileSize;
+			int screenX = worldX - gp.player.worldX + gp.player.screenX;
+			int screenY = worldY - gp.player.worldY + gp.player.screenY;
+			
+			if(worldX + gp.tileSize > gp.player.worldX - gp.player.screenX && 
+			   worldX - gp.tileSize < gp.player.worldX + gp.player.screenX &&
+			   worldY + gp.tileSize > gp.player.worldY - gp.player.screenY &&
+			   worldY - gp.tileSize < gp.player.worldY + gp.player.screenY) {
+		
+				g2.drawImage(tile[tileNum].image, screenX, screenY, gp.tileSize, gp.tileSize, null);
+				
+			}
+				worldCol++;
+			
+			if(worldCol == gp.maxWorldCol) {
+				worldCol = 0;
+				worldRow++;	
+				}
+			}
+		}
+	}
+package tile;
+
+import java.awt.image.BufferedImage;
+
+public class Tile {
+	
+	public BufferedImage image;
+	public boolean collision;
+
+	public Tile() {
+		this.image = null;
+		this.collision = false;
+	}
+	
+	public Tile(BufferedImage image, boolean collision) {
+		this.image = image;
+		this.collision = collision;
+	}
+}
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 0 0 0 0 0 0 0 1 1 1 1 
+1 1 1 1 1 0 0 0 0 0 0 0 1 1 1 1
+1 1 1 1 1 0 0 0 0 0 0 0 1 1 1 1 
+1 1 1 1 1 0 0 0 0 0 0 0 1 1 1 1
+1 1 1 1 1 0 0 0 0 0 0 0 1 1 1 1 
+1 1 1 1 1 0 0 0 0 0 0 0 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1	
